@@ -112,7 +112,7 @@ class ClassForm extends React.Component {
             React.createElement(Input, { type: "time", label: "\u041F\u043E\u0447\u0430\u0442\u043E\u043A", required: true, value: s.start, onChange: e => this.setState({ start: e.target.value, error: '' }) }),
             React.createElement(Input, { type: "time", label: "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043D\u044F", required: true, value: s.end, onChange: e => this.setState({ end: e.target.value, error: '' }) })),
         React.createElement(Input, { label: "\u0410\u0443\u0434\u0438\u0442\u043E\u0440\u0456\u044F / \u043F\u043E\u0441\u0438\u043B\u0430\u043D\u043D\u044F", value: s.room, placeholder: "\u041D\u0430\u043F\u0440\u0438\u043A\u043B\u0430\u0434, \u0410\u0443\u0434. 210 \u0430\u0431\u043E \u043E\u043D\u043B\u0430\u0439\u043D", onChange: e => this.setState({ room: e.target.value }) }),
-        s.error && React.createElement("p", { className: "field-error" }, s.error),
+        s.error && React.createElement("p", { className: "field-error", role: "alert" }, s.error),
         React.createElement("div", { className: "modal-actions" },
             React.createElement(Button, { variant: "secondary", onClick: this.props.onCancel }, "\u0421\u043A\u0430\u0441\u0443\u0432\u0430\u0442\u0438"),
             React.createElement(Button, { icon: "plus", type: "submit" }, "\u0417\u0431\u0435\u0440\u0435\u0433\u0442\u0438 \u0437\u0430\u043D\u044F\u0442\u0442\u044F"))); }
@@ -155,6 +155,21 @@ class App extends React.Component {
         const data = loadData();
         this.state = { data, page: 'dashboard', dialog: null, detailId: null, editId: null, toast: '', query: '', subjectFilter: 'all', statusFilter: 'all', calendarMode: 'month', calendarDate: localDate(new Date()), selectedDate: localDate(new Date()), mobileMenu: false, semesterDraft: data.semester.title };
     }
+    componentDidMount() {
+        this._mobileKeyHandler = e => {
+            if (e.key === 'Escape' && this.state.mobileMenu && !this.state.dialog && !this.state.detailId) {
+                this.setState({ mobileMenu: false }, () => document.querySelector('.mobile-menu')?.focus());
+            }
+        };
+        document.addEventListener('keydown', this._mobileKeyHandler);
+    }
+    componentWillUnmount() { clearTimeout(this._timer); document.removeEventListener('keydown', this._mobileKeyHandler); }
+    componentDidUpdate(prevProps, prevState) {
+        if (prevState.page !== this.state.page && !this.state.dialog && !this.state.detailId) {
+            const heading = document.querySelector('#content h1');
+            if (heading) heading.focus({ preventScroll: true });
+        }
+    }
     persist(data) { try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     }
@@ -170,11 +185,11 @@ class App extends React.Component {
             React.createElement("span", { className: "eyebrow" },
                 "\u041D\u0410\u0412\u0427\u0410\u041B\u042C\u041D\u0418\u0419 \u041F\u0420\u041E\u0421\u0422\u0406\u0420 / ",
                 title.toUpperCase()),
-            React.createElement("h1", null, title),
+            React.createElement("h1", { tabIndex: -1 }, title),
             React.createElement("p", null, subtitle)),
         action); }
-    renderSidebar() { const nav = [['dashboard', 'home', 'Огляд'], ['tasks', 'tasks', 'Завдання'], ['calendar', 'calendar', 'Календар'], ['schedule', 'schedule', 'Розклад'], ['subjects', 'books', 'Предмети']]; const total = this.state.data.tasks.filter(t => t.status !== 'done').length; return React.createElement("aside", { className: `sidebar ${this.state.mobileMenu ? 'open' : ''}` },
-        React.createElement("div", { className: "brand", onClick: () => this.navigate('dashboard'), role: "button", tabIndex: 0, onKeyDown: e => e.key === 'Enter' && this.navigate('dashboard') },
+    renderSidebar() { const nav = [['dashboard', 'home', 'Огляд'], ['tasks', 'tasks', 'Завдання'], ['calendar', 'calendar', 'Календар'], ['schedule', 'schedule', 'Розклад'], ['subjects', 'books', 'Предмети']]; const total = this.state.data.tasks.filter(t => t.status !== 'done').length; return React.createElement("aside", { id: "uniplan-sidebar", className: `sidebar ${this.state.mobileMenu ? 'open' : ''}` },
+        React.createElement("button", { type: "button", className: "brand", onClick: () => this.navigate('dashboard'), "aria-label": "UniPlan — перейти на головну" },
             React.createElement("div", { className: "brand-logo" },
                 React.createElement(Icon, { name: "layers", size: 24 })),
             React.createElement("div", null,
@@ -196,8 +211,8 @@ class App extends React.Component {
                 React.createElement("div", null,
                     React.createElement("strong", null, "\u041C\u0456\u0439 \u043F\u0440\u043E\u0441\u0442\u0456\u0440"),
                     React.createElement("small", null, "\u0414\u0430\u043D\u0456 \u0443 \u0446\u044C\u043E\u043C\u0443 \u0431\u0440\u0430\u0443\u0437\u0435\u0440\u0456"))))); }
-    renderTop() { const up = this.state.data.tasks.filter(t => t.status !== 'done' && timeUntil(t.dueAt) <= 2 && timeUntil(t.dueAt) >= -2).length; return React.createElement("div", { className: "topbar" },
-        React.createElement("button", { className: "mobile-menu icon-btn", "aria-label": "\u0412\u0456\u0434\u043A\u0440\u0438\u0442\u0438 \u043C\u0435\u043D\u044E", onClick: () => this.setState({ mobileMenu: !this.state.mobileMenu }) },
+    renderTop() { const up = this.state.data.tasks.filter(t => t.status !== 'done' && timeUntil(t.dueAt) <= 2 && timeUntil(t.dueAt) >= -2).length; return React.createElement("header", { className: "topbar" },
+        React.createElement("button", { type: "button", className: "mobile-menu icon-btn", "aria-controls": "uniplan-sidebar", "aria-expanded": this.state.mobileMenu, "aria-label": this.state.mobileMenu ? "Закрити меню" : "Відкрити меню", onClick: () => this.setState({ mobileMenu: !this.state.mobileMenu }, () => { if (this.state.mobileMenu) document.querySelector('#uniplan-sidebar .nav-item')?.focus(); }) },
             React.createElement(Icon, { name: "menu" })),
         React.createElement("div", { className: "top-crumb" },
             "UniPlan ",
@@ -328,14 +343,14 @@ class App extends React.Component {
                         React.createElement("p", null, "\u041E\u0431\u0435\u0440\u0438 \u0434\u0435\u043D\u044C, \u0449\u043E\u0431 \u043F\u043E\u0431\u0430\u0447\u0438\u0442\u0438 \u0434\u0435\u0442\u0430\u043B\u0456")),
                     React.createElement("div", { className: "calendar-toolbar" },
                         React.createElement("div", { className: "view-switch" },
-                            React.createElement("button", { className: this.state.calendarMode === 'month' ? 'selected' : '', onClick: () => this.setState({ calendarMode: 'month' }) }, "\u041C\u0456\u0441\u044F\u0446\u044C"),
-                            React.createElement("button", { className: this.state.calendarMode === 'week' ? 'selected' : '', onClick: () => this.setState({ calendarMode: 'week' }) }, "\u0422\u0438\u0436\u0434\u0435\u043D\u044C")),
+                            React.createElement("button", { className: this.state.calendarMode === 'month' ? 'selected' : '', "aria-pressed": this.state.calendarMode === 'month', onClick: () => this.setState({ calendarMode: 'month' }) }, "\u041C\u0456\u0441\u044F\u0446\u044C"),
+                            React.createElement("button", { className: this.state.calendarMode === 'week' ? 'selected' : '', "aria-pressed": this.state.calendarMode === 'week', onClick: () => this.setState({ calendarMode: 'week' }) }, "\u0422\u0438\u0436\u0434\u0435\u043D\u044C")),
                         React.createElement("button", { className: "square-button", onClick: () => this.shiftCalendar(-1), "aria-label": "\u041F\u043E\u043F\u0435\u0440\u0435\u0434\u043D\u0456\u0439 \u043F\u0435\u0440\u0456\u043E\u0434" },
                             React.createElement(Icon, { name: "left", size: 18 })),
                         React.createElement("button", { className: "square-button", onClick: () => this.shiftCalendar(1), "aria-label": "\u041D\u0430\u0441\u0442\u0443\u043F\u043D\u0438\u0439 \u043F\u0435\u0440\u0456\u043E\u0434" },
                             React.createElement(Icon, { name: "chevron", size: 18 })))),
                 React.createElement("div", { className: "calendar-head" }, DAY_NAMES.map(d => React.createElement("span", { key: d }, d))),
-                React.createElement("div", { className: `calendar-days ${this.state.calendarMode === 'week' ? 'weekmode' : ''}` }, cells.map((d, i) => { const key = localDate(d), items = all.filter(t => t.dueAt.slice(0, 10) === key), sessions = this.state.data.classes.filter(c => c.day === ((d.getDay() + 6) % 7) + 1), muted = d.getMonth() !== base.getMonth(), isNow = key === localDate(new Date()); return React.createElement("button", { type: "button", key: key + i, className: `calendar-day ${muted ? 'muted' : ''} ${key === selected ? 'selected' : ''}`, onClick: () => this.setState({ selectedDate: key }) },
+                React.createElement("div", { className: `calendar-days ${this.state.calendarMode === 'week' ? 'weekmode' : ''}` }, cells.map((d, i) => { const key = localDate(d), items = all.filter(t => t.dueAt.slice(0, 10) === key), sessions = this.state.data.classes.filter(c => c.day === ((d.getDay() + 6) % 7) + 1), muted = d.getMonth() !== base.getMonth(), isNow = key === localDate(new Date()); return React.createElement("button", { type: "button", key: key + i, className: `calendar-day ${muted ? 'muted' : ''} ${key === selected ? 'selected' : ''}`, "aria-pressed": key === selected, "aria-label": `${dateLabel(key, 'long')}: ${items.length} завдань, ${sessions.length} занять`, onClick: () => this.setState({ selectedDate: key }) },
                     React.createElement("span", { className: `day-number ${isNow ? 'today' : ''}` }, d.getDate()),
                     React.createElement("span", { className: "day-events" },
                         items.slice(0, 2).map(t => { var _a; return React.createElement("i", { key: t.id, className: "event-chip", style: { background: ((_a = this.getSubject(t.subjectId)) === null || _a === void 0 ? void 0 : _a.color) || '#888' }, title: t.title }); }),
@@ -423,7 +438,7 @@ class App extends React.Component {
                     React.createElement("b", null,
                         pct,
                         "%")),
-                React.createElement("div", { className: "progress-rail" },
+                React.createElement("div", { className: "progress-rail", role: "progressbar", "aria-label": `Прогрес предмета ${s.name}`, "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": pct },
                     React.createElement("div", { style: { width: pct + '%', background: s.color } })),
                 React.createElement("button", { className: "subject-bottom", onClick: () => this.setState({ page: 'tasks', subjectFilter: s.id, query: '', statusFilter: 'all' }) },
                     "\u041F\u0435\u0440\u0435\u0433\u043B\u044F\u043D\u0443\u0442\u0438 \u0437\u0430\u0432\u0434\u0430\u043D\u043D\u044F ",
@@ -495,14 +510,14 @@ class App extends React.Component {
                 React.createElement("b", null,
                     pct,
                     "%")),
-            React.createElement("div", { className: "progress-rail" },
+            React.createElement("div", { className: "progress-rail", role: "progressbar", "aria-label": "Прогрес підзадач", "aria-valuemin": 0, "aria-valuemax": 100, "aria-valuenow": pct },
                 React.createElement("div", { style: { width: pct + '%' } }))),
         React.createElement("div", { className: "checklist" }, t.subtasks.map(st => React.createElement("label", { key: st.id, className: "checklist-line" },
             React.createElement("input", { type: "checkbox", checked: st.done, onChange: () => this.toggleSubtask(t.id, st.id) }),
             React.createElement("span", null, st.title)))),
         React.createElement("form", { className: "new-subtask", onSubmit: e => { e.preventDefault(); const input = e.target.elements.subtask; this.addSubtask(t.id, input.value); input.value = ''; } },
             React.createElement("input", { name: "subtask", "aria-label": "\u041D\u043E\u0432\u0430 \u043F\u0456\u0434\u0437\u0430\u0434\u0430\u0447\u0430", placeholder: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043A\u0440\u043E\u043A \u0434\u043E \u0437\u0430\u0432\u0434\u0430\u043D\u043D\u044F..." }),
-            React.createElement("button", { type: "submit", title: "\u0414\u043E\u0434\u0430\u0442\u0438 \u043F\u0456\u0434\u0437\u0430\u0434\u0430\u0447\u0443" },
+            React.createElement("button", { type: "submit", title: "Додати підзадачу", "aria-label": "Додати підзадачу" },
                 React.createElement(Icon, { name: "plus", size: 19 }))),
         React.createElement("div", { className: "modal-actions space-between" },
             React.createElement(Button, { variant: "danger", icon: "trash", onClick: () => this.deleteTask(t.id) }, "\u0412\u0438\u0434\u0430\u043B\u0438\u0442\u0438"),
@@ -510,11 +525,12 @@ class App extends React.Component {
                 React.createElement(Button, { variant: "secondary", icon: "pencil", onClick: () => this.setState({ editId: t.id, detailId: null, dialog: 'task' }) }, "\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438"),
                 React.createElement(Button, { icon: "check", onClick: () => { this.toggleTask(t.id); this.setState({ detailId: null }); this.notify(t.status === 'done' ? 'Завдання повернено у роботу' : 'Завдання виконано'); } }, t.status === 'done' ? 'Повернути' : 'Завершити')))); }
     render() { const { dialog, page, toast, mobileMenu } = this.state; return React.createElement("div", { className: "app-shell" },
+        React.createElement("a", { className: "skip-link", href: "#content" }, "Перейти до основного вмісту"),
         this.renderSidebar(),
         mobileMenu && React.createElement("button", { className: "mobile-overlay", onClick: () => this.setState({ mobileMenu: false }), "aria-label": "\u0417\u0430\u043A\u0440\u0438\u0442\u0438 \u043C\u0435\u043D\u044E" }),
         React.createElement("div", { className: "main-area" },
             this.renderTop(),
-            React.createElement("main", { className: "main-content", id: "content" },
+            React.createElement("main", { className: "main-content", id: "content", tabIndex: -1 },
                 page === 'dashboard' ? this.renderDashboard() : page === 'tasks' ? this.renderTasks() : page === 'calendar' ? this.renderCalendar() : page === 'schedule' ? this.renderSchedule() : page === 'subjects' ? this.renderSubjects() : this.renderSettings(),
                 React.createElement("footer", { className: "page-footer" }, "\u00A9 UniPlan \u00B7 \u043D\u0430\u0432\u0447\u0430\u043B\u044C\u043D\u0438\u0439 \u043F\u0440\u043E\u0454\u043A\u0442 \u00B7 \u0434\u0430\u043D\u0456 \u0437\u0431\u0435\u0440\u0456\u0433\u0430\u044E\u0442\u044C\u0441\u044F \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E"))),
         toast && React.createElement("div", { className: "toast", role: "status" },
