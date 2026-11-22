@@ -70,26 +70,30 @@ function Button({ children, variant = 'primary', size = 'md', disabled = false, 
         React.createElement("span", null, children));
 }
 function Input({ label, hint, error, required = false, className = '', ...props }) {
+    const generatedId = React.useId();
+    const fieldId = props.id || generatedId;
+    const descriptionId = error ? `${fieldId}-error` : hint ? `${fieldId}-hint` : undefined;
+    const describedBy = [props['aria-describedby'], descriptionId].filter(Boolean).join(' ') || undefined;
     return React.createElement("label", { className: `ui-field ${className}` },
         React.createElement("span", { className: "field-label" },
             label,
-            required && React.createElement("span", { className: "required" }, " *")),
-        React.createElement("input", { className: `ui-input ${error ? 'invalid' : ''}`, "aria-invalid": !!error, required: required, ...props }),
-        error && React.createElement("small", { className: "field-error" }, error),
-        !error && hint && React.createElement("small", { className: "field-hint" }, hint));
+            required && React.createElement("span", { className: "required", "aria-hidden": "true" }, " *")),
+        React.createElement("input", { ...props, id: fieldId, className: `ui-input ${error ? 'invalid' : ''}`,
+            "aria-invalid": error ? true : undefined, "aria-describedby": describedBy, required }),
+        error && React.createElement("small", { id: `${fieldId}-error`, className: "field-error", role: "alert" }, error),
+        !error && hint && React.createElement("small", { id: `${fieldId}-hint`, className: "field-hint" }, hint));
 }
 function Select({ label, children, required = false, ...props }) {
+    const generatedId = React.useId();
     return React.createElement("label", { className: "ui-field" },
-        React.createElement("span", { className: "field-label" },
-            label,
-            required ? ' *' : ''),
-        React.createElement("select", { className: "ui-input", required: required, ...props }, children));
+        React.createElement("span", { className: "field-label" }, label, required ? ' *' : ''),
+        React.createElement("select", { ...props, id: props.id || generatedId, className: "ui-input", required }, children));
 }
 function Badge({ children, tone = 'neutral', dot = false }) { return React.createElement("span", { className: `ui-badge ${tone}` },
     dot && React.createElement("span", { className: "badge-dot" }),
     children); }
 function Card({ children, className = '', ...props }) { return React.createElement("section", { className: `surface-card ${className}`, ...props }, children); }
-function NavItem({ icon, label, active = false, count, onClick }) { return React.createElement("button", { type: "button", className: `nav-item ${active ? 'active' : ''}`, onClick: onClick },
+function NavItem({ icon, label, active = false, count, onClick }) { return React.createElement("button", { type: "button", className: `nav-item ${active ? 'active' : ''}`, "aria-current": active ? "page" : undefined, onClick: onClick },
     React.createElement(Icon, { name: icon, size: 19 }),
     React.createElement("span", null, label),
     count !== undefined && React.createElement("span", { className: "nav-count" }, count)); }
@@ -126,15 +130,52 @@ function EmptyState({ icon = 'tasks', title, description, action }) { return Rea
     React.createElement("p", null, description),
     action); }
 
-function Modal({ title, children, onClose, wide = false }) { return React.createElement("div", { className: "modal-backdrop", onMouseDown: e => { if (e.target === e.currentTarget)
-        onClose(); } },
-    React.createElement("div", { className: `modal ${wide ? 'modal-wide' : ''}`, role: "dialog", "aria-modal": "true", "aria-label": title },
-        React.createElement("header", { className: "modal-header" },
-            React.createElement("div", null,
-                React.createElement("span", { className: "eyebrow" }, "UNIPLAN"),
-                React.createElement("h2", null, title)),
-            React.createElement("button", { type: "button", className: "icon-btn", onClick: onClose, "aria-label": "\u0417\u0430\u043A\u0440\u0438\u0442\u0438" },
-                React.createElement(Icon, { name: "x" }))),
-        React.createElement("div", { className: "modal-content" }, children))); }
+function Modal({ title, children, onClose, wide = false }) {
+    const dialogRef = React.useRef(null);
+    const onCloseRef = React.useRef(onClose);
+    onCloseRef.current = onClose;
+    const titleId = React.useId();
+    React.useEffect(() => {
+        const dialog = dialogRef.current;
+        if (!dialog) return undefined;
+        const previousFocus = document.activeElement;
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
+        const selector = 'button:not([disabled]), [href], input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+        const focusable = () => Array.from(dialog.querySelectorAll(selector)).filter(el => el.getClientRects().length > 0);
+        const initial = dialog.querySelector('input:not([type="hidden"]), select, textarea') || focusable()[0] || dialog;
+        initial.focus();
+        const handleKeyDown = (event) => {
+            if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); onCloseRef.current(); return; }
+            if (event.key !== 'Tab') return;
+            const items = focusable();
+            if (!items.length) { event.preventDefault(); dialog.focus(); return; }
+            const first = items[0], last = items[items.length - 1];
+            if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+                event.preventDefault(); last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+                event.preventDefault(); first.focus();
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown, true);
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown, true);
+            document.body.style.overflow = previousOverflow;
+            if (previousFocus && previousFocus.isConnected && typeof previousFocus.focus === 'function') previousFocus.focus();
+        };
+    }, []);
+    return React.createElement("div", { className: "modal-backdrop", onMouseDown: e => {
+        if (e.target === e.currentTarget) onClose();
+    } },
+        React.createElement("div", { ref: dialogRef, className: `modal ${wide ? 'modal-wide' : ''}`, role: "dialog",
+            tabIndex: -1, "aria-modal": "true", "aria-labelledby": titleId },
+            React.createElement("header", { className: "modal-header" },
+                React.createElement("div", null,
+                    React.createElement("span", { className: "eyebrow" }, "UNIPLAN"),
+                    React.createElement("h2", { id: titleId }, title)),
+                React.createElement("button", { type: "button", className: "icon-btn", onClick: onClose,
+                    "aria-label": "Закрити діалогове вікно" }, React.createElement(Icon, { name: "x" }))),
+            React.createElement("div", { className: "modal-content" }, children)));
+}
 
 export { Icon, Button, Input, Select, Badge, Card, NavItem, StatCard, TaskCard, EmptyState, Modal };
