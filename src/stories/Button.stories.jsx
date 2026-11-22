@@ -1,0 +1,10 @@
+import React from "react";
+import { Button } from "../components";
+export default { title: "UI-kit/Button", component: Button, tags: ["autodocs"], args: {children:"Зберегти",variant:"primary"} };
+export const Default = {};
+export const Hover = { render: () => <Button className="sb-button-hover">Зберегти (hover)</Button> };
+export const Active = { render: () => <Button className="sb-button-active">Зберегти (active)</Button> };
+export const Disabled = { args: {children:"Недоступно",disabled:true} };
+export const Secondary = { args: {children:"Скасувати",variant:"secondary"} };
+export const Danger = { args: {children:"Видалити",variant:"danger"} };
+export const AllStates = { render: () => <div className="sb-row"><Button>Default</Button><Button className="sb-button-hover">Hover</Button><Button className="sb-button-active">Active</Button><Button disabled>Disabled</Button></div> };

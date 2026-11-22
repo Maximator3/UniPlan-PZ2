@@ -1,0 +1,26 @@
+{
+  "name": "uniplan-pz2",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "8.6.19",
+    "@storybook/addon-essentials": "8.6.19",
+    "@storybook/addon-interactions": "8.6.19",
+    "storybook": "8.6.19",
+    "vite": "^6.1.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@storybook/test": "8.6.19"
+  }
+}

@@ -1,0 +1,1 @@
+export default { stories: ["../src/stories/**/*.stories.@(js|jsx)"], addons: ["@storybook/addon-essentials", "@storybook/addon-interactions"], framework: { name: "@storybook/react-vite", options: {} }, docs: { autodocs: "tag" } };

@@ -1,0 +1,10 @@
+import React from "react";
+import { Input } from "../components";
+export default { title: "UI-kit/Input", component: Input, tags:["autodocs"], args:{label:"Назва завдання",placeholder:"Наприклад, лабораторна №2"} };
+export const Default = {};
+export const Required = { args:{required:true} };
+export const WithHint = { args:{hint:"До 60 символів"} };
+export const Invalid = { args:{error:"Заповніть це поле"} };
+export const Disabled = { args:{disabled:true,placeholder:"Недоступно"} };
+export const Focus = { args:{className:"sb-input-focus"} };
+export const AllStates = {render:()=> <div className="sb-stack"><Input label="Звичайне поле" placeholder="Назва"/><Input label="Обов'язкове" required/><Input label="Помилка" error="Заповніть поле"/><Input label="Недоступне" disabled/></div>};
